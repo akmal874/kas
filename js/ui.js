@@ -455,7 +455,7 @@ async function unduhPDF(){
 window.unduhPDF = unduhPDF;
 
 // ---- Buka folder Google Drive arsip ----
-const DRIVE_URL = "https://drive.google.com/drive/folders/1UPgmRh4lhPn1Qi1KOd8rJSxKQZ7slwH9?usp=sharing";
+const DRIVE_URL = "https://drive.google.com/drive/folders/13fE7La7nPvh2zXn0_s3thsZ8ryikgnmy?usp=drive_link";
 function bukaDrive(){
   window.open(DRIVE_URL, "_blank", "noopener");
 }
