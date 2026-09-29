@@ -193,6 +193,10 @@ svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.9;stroke
   .brand h1{font-size:15px}
 }
 
+/* Tombol pilihan upload (Kamera / Galeri) */
+.upload-opsi{display:flex;gap:8px;margin-bottom:6px}
+.upload-btn{flex:1;justify-content:center}
+
 /* ============================================================
    CETAK — laporan dibangun terpisah (#printRoot) via print.js
    Tabel aplikasi & UI layar disembunyikan total saat cetak.
