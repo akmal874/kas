@@ -360,6 +360,17 @@ async function hapus(id){
 // preview kompres saat pilih file
 async function onPickFile(e){
   const file = e.target.files[0];
+
+  // sinkronkan kedua input: file dari galeri dipindah ke input utama (name="bukti"),
+  // input yang tidak dipakai dikosongkan agar tidak bertabrakan saat simpan
+  const inpKamera = document.getElementById("inpKamera");
+  const inpGaleri = document.getElementById("inpGaleri");
+  if (e.target.id === "inpGaleri" && inpKamera) {
+    inpKamera.files = e.target.files;
+  } else if (e.target.id === "inpKamera" && inpGaleri) {
+    inpGaleri.value = "";
+  }
+
   const el = document.getElementById("compressInfo");
   if(!file){ el.textContent=""; return; }
   el.textContent = "Mengompres…";
