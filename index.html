@@ -130,7 +130,21 @@
         </div>
         <div class="field" id="tokoLainWrap" style="display:none"><label>Nama Toko Lain</label><input name="nama_toko_lain" placeholder="Ketik nama toko baru"></div>
         <div class="field"><label>Penanggung Jawab</label><select name="penanggung_jawab" required></select></div>
-        <div class="field"><label>Bukti (gambar)</label><input type="file" name="bukti" accept="image/*" onchange="onPickFile(event)"><div class="hint" id="compressInfo"></div></div>
+        <div class="field"><label>Bukti (gambar)</label>
+          <div class="upload-opsi">
+            <button type="button" class="btn upload-btn" onclick="document.getElementById('inpKamera').click()">
+              <svg viewBox="0 0 24 24"><path d="M23 19V8a2 2 0 0 0-2-2h-3l-2-3H8L6 6H3a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2z"/><circle cx="12" cy="13" r="4"/></svg>
+              Kamera
+            </button>
+            <button type="button" class="btn upload-btn" onclick="document.getElementById('inpGaleri').click()">
+              <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 15l4-4 4 4 3-3 5 5"/><circle cx="9" cy="9" r="1.5"/></svg>
+              Galeri
+            </button>
+          </div>
+          <input type="file" id="inpKamera" name="bukti" accept="image/*" capture="environment" onchange="onPickFile(event)" style="display:none">
+          <input type="file" id="inpGaleri" accept="image/*" onchange="onPickFile(event)" style="display:none">
+          <div class="hint" id="compressInfo"></div>
+        </div>
         <div class="field"><label>Keterangan</label><textarea name="keterangan" rows="2" placeholder="opsional"></textarea></div>
       </div>
       <div class="modal-ft">
