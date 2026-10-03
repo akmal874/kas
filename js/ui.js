@@ -357,25 +357,84 @@ async function hapus(id){
   finally{ hideLoading(); }
 }
 
-// preview kompres saat pilih file
-async function onPickFile(e){
-  const file = e.target.files[0];
+// ============================================================
+//  EDITOR FOTO (Cropper.js) — crop & putar sebelum upload
+// ============================================================
+let _cropper = null;
 
-  // sinkronkan kedua input: file dari galeri dipindah ke input utama (name="bukti"),
-  // input yang tidak dipakai dikosongkan agar tidak bertabrakan saat simpan
+function bukaEditorFoto(file) {
+  return new Promise((resolve) => {
+    // jika Cropper.js gagal dimuat, lewati editor
+    if (typeof Cropper === "undefined") { resolve(file); return; }
+
+    const overlay = document.getElementById("cropOverlay");
+    const img = document.getElementById("cropImg");
+    const url = URL.createObjectURL(file);
+
+    const tutup = (hasil) => {
+      if (_cropper) { _cropper.destroy(); _cropper = null; }
+      URL.revokeObjectURL(url);
+      img.onload = null;
+      img.removeAttribute("src");
+      overlay.classList.add("hidden");
+      resolve(hasil);
+    };
+
+    document.getElementById("cropKiri").onclick  = () => _cropper && _cropper.rotate(-90);
+    document.getElementById("cropKanan").onclick = () => _cropper && _cropper.rotate(90);
+    document.getElementById("cropReset").onclick = () => _cropper && _cropper.reset();
+    document.getElementById("cropBatal").onclick = () => tutup(null);
+    document.getElementById("cropPakai").onclick = () => {
+      if (!_cropper) return tutup(file);
+      const canvas = _cropper.getCroppedCanvas({ maxWidth: 2000, maxHeight: 2000, fillColor: "#fff" });
+      if (!canvas) return tutup(file);
+      canvas.toBlob((blob) => {
+        if (!blob) return tutup(file);
+        const nama = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+        tutup(new File([blob], nama, { type: "image/jpeg" }));
+      }, "image/jpeg", 0.92);
+    };
+
+    img.onload = () => {
+      _cropper = new Cropper(img, {
+        viewMode: 1, autoCropArea: 1, dragMode: "move",
+        background: false, responsive: true
+      });
+    };
+    overlay.classList.remove("hidden");
+    img.src = url;
+  });
+}
+
+// masukkan file hasil edit ke input utama (name="bukti")
+function setFileBukti(file) {
   const inpKamera = document.getElementById("inpKamera");
   const inpGaleri = document.getElementById("inpGaleri");
-  if (e.target.id === "inpGaleri" && inpKamera) {
-    inpKamera.files = e.target.files;
-  } else if (e.target.id === "inpKamera" && inpGaleri) {
-    inpGaleri.value = "";
-  }
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  inpKamera.files = dt.files;
+  if (inpGaleri) inpGaleri.value = "";
+}
 
+// pilih file (kamera / galeri) → edit → preview kompres
+async function onPickFile(e){
+  const fileAsli = e.target.files[0];
   const el = document.getElementById("compressInfo");
-  if(!file){ el.textContent=""; return; }
+  if(!fileAsli){ el.textContent=""; return; }
+
+  const file = await bukaEditorFoto(fileAsli);
+  if(!file){                                   // pengguna menekan Batal
+    document.getElementById("inpKamera").value = "";
+    const g = document.getElementById("inpGaleri"); if (g) g.value = "";
+    el.textContent = "";
+    return;
+  }
+  setFileBukti(file);
+
   el.textContent = "Mengompres…";
   const { blob } = await compressImage(file);
-  el.textContent = `Ukuran: ${humanSize(file.size)} → ${humanSize(blob.size)} (hemat ${Math.round((1-blob.size/file.size)*100)}%)`;
+  const hemat = Math.max(0, Math.round((1 - blob.size / fileAsli.size) * 100));
+  el.textContent = `Ukuran: ${humanSize(fileAsli.size)} → ${humanSize(blob.size)} (hemat ${hemat}%)`;
 }
 
 // ---- Pagu ----
@@ -553,3 +612,36 @@ window.addEventListener("resize", () => {
     if (STATE.rows.length) renderTable();
   }
 });
+
+// ============================================================
+//  BERSIHKAN BUKTI TAK TERPAKAI (khusus pengelola)
+// ============================================================
+async function bersihkanBukti() {
+  const btn = document.getElementById("btnBersih");
+  const teksAsli = btn.innerHTML;
+  btn.disabled = true;
+  btn.textContent = "Memeriksa…";
+  try {
+    const { yatim, totalFile, dipakai } = await cariBuktiYatim();
+    if (!yatim.length) {
+      await uiAlert(`Tidak ada file tak terpakai. Total ${totalFile} file, semuanya masih dipakai.`);
+      return;
+    }
+    // pengaman: batalkan jika data transaksi tidak terbaca, agar tidak menghapus semua file
+    if (dipakai === 0 && STATE.rows.some(r => r.bukti_url)) {
+      await uiAlert("Pembersihan dibatalkan karena data transaksi tidak terbaca dengan benar. Muat ulang halaman lalu coba lagi.");
+      return;
+    }
+    const ok = await uiConfirm(`Ditemukan ${yatim.length} dari ${totalFile} file bukti yang tidak terpakai. Hapus permanen dari Supabase? Tindakan ini tidak bisa dibatalkan.`);
+    if (!ok) return;
+    btn.textContent = "Menghapus…";
+    const n = await hapusBuktiYatim(yatim);
+    await uiAlert(`${n} file tak terpakai berhasil dihapus.`);
+  } catch (err) {
+    await uiAlert("Gagal membersihkan: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = teksAsli;
+  }
+}
+window.bersihkanBukti = bersihkanBukti;

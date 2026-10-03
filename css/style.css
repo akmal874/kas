@@ -197,6 +197,19 @@ svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.9;stroke
 .upload-opsi{display:flex;gap:8px;margin-bottom:6px}
 .upload-btn{flex:1;justify-content:center}
 
+/* Editor foto (Cropper.js) */
+.crop-overlay{position:fixed;inset:0;background:rgba(18,42,43,.6);display:flex;align-items:center;justify-content:center;padding:16px;z-index:70}
+.crop-box{background:#fff;border-radius:16px;width:100%;max-width:640px;max-height:94vh;display:flex;flex-direction:column;overflow:hidden}
+.crop-area{background:#1b1b1b;height:58vh;min-height:260px}
+.crop-area img{display:block;max-width:100%}
+.crop-tools{display:flex;gap:8px;padding:12px 16px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+.crop-tools .btn{flex:1;justify-content:center}
+@media(max-width:640px){
+  .crop-overlay{padding:0}
+  .crop-box{max-width:100%;max-height:100vh;height:100%;border-radius:0}
+  .crop-area{flex:1;height:auto;min-height:0}
+}
+
 /* ============================================================
    CETAK — laporan dibangun terpisah (#printRoot) via print.js
    Tabel aplikasi & UI layar disembunyikan total saat cetak.

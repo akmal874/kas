@@ -6,6 +6,7 @@
 <title>Laporan Dana Revitalisasi SMK 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
 </head>
 <body>
 
@@ -76,7 +77,8 @@
   <button id="btnExcel" class="btn"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H4zM12 16v4M8 20h8"/></svg> Ekspor Excel</button>
   <button id="btnCetak" class="btn"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4v-6h16v6h-2M8 14h8v7H8z"/></svg> Cetak</button>
   <button id="btnPdf" class="btn"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg> Unduh PDF</button>
-    <button id="btnDrive" class="btn" type="button"><svg viewBox="0 0 24 24"><path d="M8 3h8l5 9-4 7H7l-4-7zM8 3l4 7M16 3l-4 7M8 19l4-7M3.5 12h9"/></svg> Dokumentasi</button>
+  <button id="btnDrive" class="btn" type="button"><svg viewBox="0 0 24 24"><path d="M8 3h8l5 9-4 7H7l-4-7zM8 3l4 7M16 3l-4 7M8 19l4-7M3.5 12h9"/></svg> Dokumentasi</button>
+  <button id="btnBersih" class="btn" type="button" data-edit-only onclick="bersihkanBukti()"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg> Bersihkan Bukti</button>
   <button class="btn btn-primary" data-edit-only onclick="openAdd()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Tambah Transaksi</button>
 </div>
 
@@ -170,6 +172,23 @@
   </div>
 </div>
 
+<!-- MODAL EDIT FOTO (Cropper.js) -->
+<div id="cropOverlay" class="crop-overlay hidden">
+  <div class="crop-box">
+    <div class="modal-hd"><h2>Edit Foto Bukti</h2></div>
+    <div class="crop-area"><img id="cropImg" alt="Foto bukti"></div>
+    <div class="crop-tools">
+      <button type="button" class="btn" id="cropKiri">⟲ Putar Kiri</button>
+      <button type="button" class="btn" id="cropKanan">⟳ Putar Kanan</button>
+      <button type="button" class="btn" id="cropReset">Reset</button>
+    </div>
+    <div class="modal-ft">
+      <button type="button" class="btn" id="cropBatal">Batal</button>
+      <button type="button" class="btn btn-primary" id="cropPakai">Gunakan Foto</button>
+    </div>
+  </div>
+</div>
+
 <!-- Overlay loading global (#7) -->
 <div id="loadingOverlay" class="loading-overlay">
   <div class="loading-box">
@@ -199,6 +218,7 @@
 <!-- SCRIPTS -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/master.js"></script>
 <script src="js/supabase.js"></script>
