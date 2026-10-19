@@ -64,7 +64,7 @@ function buildPrintReport(){
           <th style="width:12%">PENGELUARAN<br>(Rp)</th>
           <th style="width:12%">SALDO<br>(Rp)</th>
           <th style="width:8%">PAJAK</th>
-          <th style="width:11%">NAMA TOKO</th>
+          <th style="width:11%">TOKO / PENERIMA</th>
           <th style="width:9%">KETERANGAN</th>
         </tr>
       </thead>
