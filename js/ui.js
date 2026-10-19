@@ -89,6 +89,7 @@ async function loadTransaksi() {
   const raw = await fetchTransaksi(STATE.bulan);
   const R = hitungRingkasan(raw, STATE.pengaturan.pagu_anggaran);
   STATE.rows = R.rows;
+  catatPenerima(STATE.rows);
   STATE.page = 1;
   renderSummary(R, STATE.pengaturan);
   renderTable();
@@ -99,13 +100,12 @@ function applyFilter(rows){
   let out = rows;
   // filter jenis
   if(STATE.jenis !== "all") out = out.filter(r => r.jenis === STATE.jenis);
-  // filter kategori (barang / upah / pekerjaan tertentu) — hanya pengeluaran
+  // filter kategori (barang / upah / sewa / pekerjaan tertentu) — hanya pengeluaran
   if(STATE.kategori !== "all"){
     out = out.filter(r => {
       if(r.jenis !== "keluar") return false;
-      const kat = r.kategori === "upah" ? "upah" : "barang";
-      if(STATE.kategori === "barang") return kat === "barang";
-      if(STATE.kategori === "upah")   return kat === "upah";
+      const kat = kategoriDari(r);
+      if(["barang","upah","sewa"].includes(STATE.kategori)) return kat === STATE.kategori;
       return kat === "upah" && r.pekerjaan === STATE.kategori;
     });
   }
@@ -140,13 +140,19 @@ function renderSummary(R, p){
     `Terserap ${pct.toFixed(1)}% · <span class="num">${rp(R.keluar)}</span> dari pagu`;
 }
 
-// uraian + label kategori (Barang / Upah · pekerjaan) di tabel
+// kategori sebuah transaksi pengeluaran (data lama tanpa kategori = barang)
+function kategoriDari(r){
+  return (r.kategori === "upah" || r.kategori === "sewa") ? r.kategori : "barang";
+}
+
+// uraian + label kategori (Barang / Upah · pekerjaan / Sewa) di tabel
 function uraianDenganKategori(r){
   let lbl = "";
   if(r.jenis === "keluar"){
-    lbl = r.kategori === "upah"
-      ? `<span class="kat kat-up">Upah · ${window.pekerjaanLabel(r.pekerjaan, true)}</span>`
-      : `<span class="kat kat-brg">Barang</span>`;
+    const kat = kategoriDari(r);
+    lbl = kat === "upah" ? `<span class="kat kat-up">Upah · ${window.pekerjaanLabel(r.pekerjaan, true)}</span>`
+        : kat === "sewa" ? `<span class="kat kat-sw">Sewa</span>`
+        : `<span class="kat kat-brg">Barang</span>`;
   }
   return `<div class="desc-wrap">${r.uraian}${lbl}</div>`;
 }
@@ -250,6 +256,7 @@ function isiDropdown(){
 
 function openModal(data=null){
   isiDropdown();
+  isiPenerima();
   document.getElementById("mTitle").textContent = data ? "Ubah Transaksi" : "Tambah Transaksi";
   const f = document.getElementById("formTx");
   f.reset();
@@ -299,23 +306,57 @@ function hitungPajakOtomatis(){
 window.hitungPajakOtomatis = hitungPajakOtomatis;
 
 // ============================================================
-//  KATEGORI PENGELUARAN: BARANG / UPAH (form)
+//  KATEGORI PENGELUARAN: BARANG / UPAH / SEWA (form)
 // ============================================================
 
+// daftar nama penerima upah yang pernah dicatat (untuk dropdown)
+const _penerimaDikenal = new Set();
+function catatPenerima(rows){
+  rows.forEach(r => {
+    if(r.jenis === "keluar" && r.kategori === "upah" && r.nama_toko) _penerimaDikenal.add(r.nama_toko.trim());
+  });
+}
+function isiPenerima(){
+  const sel = document.querySelector('#formTx [name=penerima]');
+  const nama = [..._penerimaDikenal].sort((a,b)=>a.localeCompare(b,"id"));
+  sel.innerHTML = `<option value="">— pilih penerima —</option>` +
+    nama.map(n=>`<option value="${n.replace(/"/g,"&quot;")}">${n}</option>`).join("") +
+    `<option value="__lain">+ Penerima lain…</option>`;
+}
+// nama penerima yang dipilih / diketik
+function ambilPenerima(f){
+  return (f.penerima.value === "__lain" ? f.penerima_lain.value : f.penerima.value).trim();
+}
+function kategoriForm(f){
+  return f.querySelector("input[name=kategori]:checked")?.value || "barang";
+}
+
 // tampil/sembunyi elemen form sesuai Jenis & Kategori
-// mode: "load" (buka form), "jenis", "kategori", "pekerjaan" (klik pengguna)
+// mode: "load" (buka form), "jenis", "kategori", "pekerjaan", "penerima" (klik pengguna)
 function syncKategori(mode){
   const f = document.getElementById("formTx");
   const keluar = f.jenis.value === "keluar";
-  const upah = keluar && f.querySelector("input[name=kategori]:checked")?.value === "upah";
+  const kat = kategoriForm(f);
+  const upah = keluar && kat === "upah";
+  const sewa = keluar && kat === "sewa";
 
   document.getElementById("wrapKategori").classList.toggle("hidden", !keluar);
   document.getElementById("wrapPekerjaan").classList.toggle("hidden", !upah);
+  // Barang & Sewa: Nama Toko | Upah: Nama Penerima Upah
   document.getElementById("wrapToko").classList.toggle("hidden", upah);
+  document.getElementById("lblToko").textContent = sewa ? "Nama Toko / Penyedia" : "Nama Toko";
   document.getElementById("tokoLainWrap").style.display =
     (!upah && f.nama_toko.value === "__lain") ? "" : "none";
+  document.getElementById("wrapPenerima").classList.toggle("hidden", !upah);
+  document.getElementById("wrapPenerimaLain").classList.toggle("hidden", !(upah && f.penerima.value === "__lain"));
 
-  if(mode === "load" || mode === "jenis") return;
+  if(mode === "load" || mode === "jenis" || mode === "penerima") return;
+
+  // pindah ke Upah / Sewa: pajak default Tanpa Pajak
+  if(mode === "kategori" && (upah || sewa)){
+    f.pajak.value = "tanpa";
+    hitungPajakOtomatis();
+  }
 
   // awalan uraian otomatis yang sedang terpakai (jika ada)
   const prefixLama = window.MASTER.pekerjaan
@@ -323,18 +364,13 @@ function syncKategori(mode){
     .find(p => f.uraian.value.startsWith(p));
 
   if(upah){
-    // pindah ke Upah: pajak default Tanpa Pajak
-    if(mode === "kategori"){
-      f.pajak.value = "tanpa";
-      hitungPajakOtomatis();
-    }
     // uraian otomatis diawali nama pekerjaan
     const kode = f.querySelector("input[name=pekerjaan]:checked")?.value;
     const prefixBaru = window.pekerjaanLabel(kode) + " – ";
     if(!f.uraian.value.trim()) f.uraian.value = prefixBaru;
     else if(prefixLama) f.uraian.value = prefixBaru + f.uraian.value.slice(prefixLama.length);
   } else if(prefixLama && f.uraian.value.trim() === prefixLama.trim()){
-    // kembali ke Barang: hapus uraian otomatis yang belum ditambah apa-apa
+    // keluar dari Upah: hapus uraian otomatis yang belum ditambah apa-apa
     f.uraian.value = "";
   }
 }
@@ -342,18 +378,30 @@ function syncKategori(mode){
 // atur kategori saat form dibuka: tambah (data=null → Barang) atau ubah
 function setKategoriForm(data){
   const f = document.getElementById("formTx");
-  const kat = data?.kategori === "upah" ? "upah" : "barang";
+  const kat = (data?.kategori === "upah" || data?.kategori === "sewa") ? data.kategori : "barang";
   f.querySelector(`input[name=kategori][value="${kat}"]`).checked = true;
   const kode = data?.pekerjaan || window.MASTER.pekerjaan[0].value;
   const r = f.querySelector(`input[name=pekerjaan][value="${kode}"]`);
   if(r) r.checked = true;
+
+  // penerima upah: nama disimpan di kolom nama_toko
+  f.penerima.value = "";
+  f.penerima_lain.value = "";
+  if(kat === "upah" && data?.nama_toko){
+    const nama = data.nama_toko.trim();
+    if([...f.penerima.options].some(o => o.value === nama)) f.penerima.value = nama;
+    else { f.penerima.value = "__lain"; f.penerima_lain.value = nama; }
+    // kosongkan isian toko agar tidak terbawa jika kategori diganti
+    f.nama_toko.value = "";
+    f.nama_toko_lain.value = "";
+  }
   syncKategori("load");
 }
 
 // nilai kategori & pekerjaan untuk disimpan (pemasukan → kosong)
 function ambilKategoriForm(f){
   if(f.jenis.value !== "keluar") return { kategori:null, pekerjaan:null };
-  const kat = f.querySelector("input[name=kategori]:checked")?.value || "barang";
+  const kat = kategoriForm(f);
   const pk = kat === "upah" ? (f.querySelector("input[name=pekerjaan]:checked")?.value || null) : null;
   return { kategori:kat, pekerjaan:pk };
 }
@@ -361,6 +409,12 @@ function ambilKategoriForm(f){
 async function submitTx(e){
   e.preventDefault();
   const f = e.target;
+
+  // Validasi: transaksi upah wajib ada nama penerima
+  if(f.jenis.value === "keluar" && kategoriForm(f) === "upah" && !ambilPenerima(f)){
+    await uiAlert("Isi Nama Penerima Upah terlebih dahulu.", "Data Belum Lengkap", "warn");
+    return;
+  }
 
   // Validasi: total pemasukan tidak boleh melebihi pagu
   const jenisBaru = f.jenis.value;
@@ -410,7 +464,7 @@ async function submitTx(e){
       keterangan: f.keterangan.value || null
     };
     Object.assign(payload, ambilKategoriForm(f));
-    if(payload.kategori === "upah") payload.nama_toko = null; // upah tanpa toko
+    if(payload.kategori === "upah") payload.nama_toko = ambilPenerima(f); // penerima upah disimpan di kolom nama_toko
     if(bukti_url) payload.bukti_url = bukti_url;
 
     if(f.dataset.id) await updateTransaksi(f.dataset.id, payload);
@@ -582,7 +636,7 @@ function buildRekap(){
     ${buildRekapKategori(rows)}`;
 }
 
-// rekap Barang vs Upah + rincian upah per pekerjaan
+// rekap Barang / Upah / Sewa + rincian upah per pekerjaan
 function buildRekapKategori(keluar){
   const jml = a => a.reduce((s,r)=>s+(Number(r.nominal)||0),0);
   const pjk = a => a.reduce((s,r)=>s+(Number(r.pajak_nominal)||0),0);
@@ -590,10 +644,11 @@ function buildRekapKategori(keluar){
   const f1 = n => n.toLocaleString("id-ID",{minimumFractionDigits:1,maximumFractionDigits:1});
   const angka = n => (n||0).toLocaleString("id-ID");
 
-  const upahRows = keluar.filter(r => r.kategori === "upah");
-  const brgRows  = keluar.filter(r => r.kategori !== "upah");
-  const totKeluar = jml(keluar), totUpah = jml(upahRows), totBrg = jml(brgRows);
-  const pBrg = persen(totBrg, totKeluar), pUpah = persen(totUpah, totKeluar);
+  const upahRows = keluar.filter(r => kategoriDari(r) === "upah");
+  const sewaRows = keluar.filter(r => kategoriDari(r) === "sewa");
+  const brgRows  = keluar.filter(r => kategoriDari(r) === "barang");
+  const totKeluar = jml(keluar), totUpah = jml(upahRows), totSewa = jml(sewaRows), totBrg = jml(brgRows);
+  const pBrg = persen(totBrg, totKeluar), pUpah = persen(totUpah, totKeluar), pSewa = persen(totSewa, totKeluar);
 
   // keempat pekerjaan selalu tampil meski nilainya 0
   const per = window.MASTER.pekerjaan.map(p => {
@@ -616,14 +671,16 @@ function buildRekapKategori(keluar){
 
   return `
     <div class="rekap-card rekap-wide">
-      <h4>Barang &amp; Upah</h4>
+      <h4>Barang, Upah &amp; Sewa</h4>
       <div class="ru-split">
         <div class="ru-mini ru-brg"><div class="l">Total Barang</div><div class="v num">${rp(totBrg)}</div>
           <div class="p">${f1(pBrg)}% dari pengeluaran · ${brgRows.length} transaksi</div></div>
         <div class="ru-mini ru-up"><div class="l">Total Upah</div><div class="v num">${rp(totUpah)}</div>
           <div class="p">${f1(pUpah)}% dari pengeluaran · ${upahRows.length} transaksi</div></div>
+        <div class="ru-mini ru-sw"><div class="l">Total Sewa</div><div class="v num">${rp(totSewa)}</div>
+          <div class="p">${f1(pSewa)}% dari pengeluaran · ${sewaRows.length} transaksi</div></div>
       </div>
-      <div class="ru-stack"><i style="width:${pBrg}%;background:#2F5C6E"></i><i style="width:${pUpah}%;background:#A9741C"></i></div>
+      <div class="ru-stack"><i style="width:${pBrg}%;background:#2F5C6E"></i><i style="width:${pUpah}%;background:#A9741C"></i><i style="width:${pSewa}%;background:#6B4E8A"></i></div>
       <div class="ru-tbl">
         <table>
           <thead><tr><th>Pekerjaan (Upah)</th><th class="c">Transaksi</th><th class="r">Total Upah (Rp)</th><th class="r">Pajak (Rp)</th><th>Porsi</th></tr></thead>
@@ -716,7 +773,7 @@ window.addEventListener("DOMContentLoaded", async ()=>{
     <input type="radio" name="pekerjaan" id="pk_${p.value}" value="${p.value}"${i===0?" checked":""}>
     <label for="pk_${p.value}"><span class="pk-dot"></span><span>${p.label}</span></label>`).join("");
   document.getElementById("formTx").addEventListener("change", (e)=>{
-    if(["jenis","kategori","pekerjaan"].includes(e.target.name)) syncKategori(e.target.name);
+    if(["jenis","kategori","pekerjaan","penerima"].includes(e.target.name)) syncKategori(e.target.name);
   });
 
   // rekap (#4) & unduh PDF (#5)
