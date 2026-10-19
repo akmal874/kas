@@ -38,3 +38,19 @@ window.pajakRate = (v) => {
   const f = window.MASTER.pajak.find((p) => p.value === v);
   return f ? f.rate : 0;
 };
+// ============================================================
+//  DAFTAR PEKERJAAN UNTUK KATEGORI UPAH
+//  value = kode yang disimpan di database (jangan diubah setelah dipakai)
+// ============================================================
+window.MASTER.pekerjaan = [
+  { value: "nkpi",   label: "Upah Rehab Kelas NKPI",        singkat: "Rehab Kelas NKPI" },
+  { value: "nkn",    label: "Upah Rehab Kelas NKN",         singkat: "Rehab Kelas NKN" },
+  { value: "perpus", label: "Upah Rehab Perpustakaan",      singkat: "Rehab Perpustakaan" },
+  { value: "toilet", label: "Upah Pembangunan Toilet Baru", singkat: "Pembangunan Toilet Baru" }
+];
+
+// nama pekerjaan dari kodenya (singkat = tanpa kata "Upah")
+window.pekerjaanLabel = (v, singkat = false) => {
+  const p = window.MASTER.pekerjaan.find(x => x.value === v);
+  return p ? (singkat ? p.singkat : p.label) : "Tanpa pekerjaan";
+};
