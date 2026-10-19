@@ -2,7 +2,7 @@
 //  EKSPOR EXCEL (SheetJS) + CETAK
 // ============================================================
 function exportExcel(rows, ringkasan, info) {
-  const header = ["No","Tanggal","Uraian","Pajak","Pemasukan","Pengeluaran","Saldo","Nama Toko","Penanggung Jawab","Keterangan"];
+  const header = ["No","Tanggal","Uraian","Pajak","Pemasukan","Pengeluaran","Saldo","Toko / Penerima","Penanggung Jawab","Keterangan"];
   const body = rows.map((r, i) => [
     i + 1, r.tanggal, r.uraian, r.pajak,
     r.jenis === "masuk" ? r.nominal : "",
