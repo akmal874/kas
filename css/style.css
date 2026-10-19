@@ -233,7 +233,7 @@ svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.9;stroke
 .rekap-upah{max-width:1200px;margin:14px auto 0;padding:0 32px}
 .ru-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px}
 .ru-title{font-family:'Sora';font-weight:600;font-size:15px;margin-bottom:12px}
-.ru-split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ru-split{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .ru-mini{border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 .ru-mini .l{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
 .ru-mini .v{font-family:'Sora';font-weight:700;font-size:20px;margin-top:4px}
@@ -252,6 +252,9 @@ svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.9;stroke
 .ru-bar{flex:1;height:7px;min-width:60px;background:#FBF1DE;border-radius:99px;overflow:hidden}
 .ru-bar i{display:block;height:100%;background:#A9741C;border-radius:99px}
 .ru-porsi span{font-size:12px;color:var(--muted)}
+.seg input:checked + .seg-sewa{background:#6B4E8A;color:#fff}
+.kat-sw{background:#EFE9F5;color:#6B4E8A}
+.ru-sw{border-top:3px solid #6B4E8A} .ru-sw .v{color:#6B4E8A}
 
 @media(max-width:640px){
   .pk-grid,.ru-split{grid-template-columns:1fr}
